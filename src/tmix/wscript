@@ -11,6 +11,7 @@ def build(bld):
     module.source = [
         'model/tmix.cc',
         'model/tmix-topology.cc',
+        'model/tmix-topology-parameter.cc',
         'helper/tmix-helper.cc',
         'helper/tmix-ns2-style-trace-helper.cc',
         ]
@@ -23,6 +24,7 @@ def build(bld):
     headers.source = [
         'model/tmix.h',
         'model/tmix-topology.h',
+        'model/tmix-topology-parameter.h',
         'helper/tmix-helper.h',
         'helper/tmix-ns2-style-trace-helper.h'
         ]
