@@ -120,7 +120,7 @@ TmixTopology::ConnectRouter (Ptr<Node> router, Ptr<PointToPointChannel> channel,
 
   // Set additional topology delays, unrelated to DelayBox
   // This is to more precisely duplicate the behavior of ns-2 Tmix
-  // TODO: make these not hard-coded
+ 
   device->SetAttribute ("DataRate", DataRateValue (m_routerDeviceOutRate));
   {
     Ptr<DropTailQueue> queue = CreateObject<DropTailQueue> ();
@@ -199,7 +199,6 @@ TmixTopology::TmixTopology (const InternetStackHelper& internet, Ptr<TmixToplogy
 
   // Set additional topology delays, unrelated to DelayBox
   // This is to more precisely duplicate the behavior of ns-2 Tmix
-  // TODO: make these not hard-coded
 
   m_centerChannelDelay = topParam->GetCenterChannelDelay ();
   m_nodeToRouterDelay = topParam->GetNodeToRouterDelay ();
