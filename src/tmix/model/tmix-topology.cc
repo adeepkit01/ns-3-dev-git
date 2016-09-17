@@ -43,6 +43,7 @@
 #include "ns3/uinteger.h"
 #include "ns3/log.h"
 #include "ns3/ipv4-global-routing-helper.h"
+#include "ns3/traffic-control-module.h"
 
 NS_LOG_COMPONENT_DEFINE ("TmixTopology");
 
@@ -54,10 +55,10 @@ namespace ns3 {
  * Out parameters: tmixDevice, routerDevice, address
  */
 void
-ConnectNodeToRouter (Ptr<Node> routerNode, Ptr<Node> tmixNode, Ptr<
-                       PointToPointNetDevice>& tmixDevice,
-                     Ptr<PointToPointNetDevice>& routerDevice, Ipv4AddressHelper &addresses,
-                     Ipv4Address& address)
+TmixTopology::ConnectNodeToRouter (Ptr<Node> routerNode, Ptr<Node> tmixNode, Ptr<
+                                     PointToPointNetDevice>& tmixDevice,
+                                   Ptr<PointToPointNetDevice>& routerDevice, Ipv4AddressHelper &addresses,
+                                   Ipv4Address& address)
 {
   Ptr<PointToPointChannel> channel = CreateObject<PointToPointChannel> ();
 
@@ -78,20 +79,20 @@ ConnectNodeToRouter (Ptr<Node> routerNode, Ptr<Node> tmixNode, Ptr<
 
   // Set additional topology delays, unrelated to DelayBox/Tmix
   // TODO: make these not hard-coded
-  channel->SetAttribute ("Delay", TimeValue (MicroSeconds (100)));
+  channel->SetAttribute ("Delay", TimeValue (m_nodeToRouterDelay));
 
-  tmixDevice->SetAttribute ("DataRate", DataRateValue (DataRate ("1000Mbps")));
+  tmixDevice->SetAttribute ("DataRate", DataRateValue (m_tmixDeviceRate));
   {
     Ptr<DropTailQueue> queue = CreateObject<DropTailQueue> ();
     queue->SetMode (Queue::QUEUE_MODE_PACKETS);
-    queue->SetAttribute ("MaxPackets", UintegerValue (200));
+    queue->SetAttribute ("MaxPackets", UintegerValue (m_tmixDeviceQueueLimit));
     tmixDevice->SetQueue (queue);
   }
-  routerDevice->SetAttribute ("DataRate", DataRateValue (DataRate ("1000Mbps")));
+  routerDevice->SetAttribute ("DataRate", DataRateValue (m_routerDeviceInRate));
   {
     Ptr<DropTailQueue> queue = CreateObject<DropTailQueue> ();
     queue->SetMode (Queue::QUEUE_MODE_PACKETS);
-    queue->SetAttribute ("MaxPackets", UintegerValue (200));
+    queue->SetAttribute ("MaxPackets", UintegerValue (m_routerInQueueLimit));
     routerDevice->SetQueue (queue);
   }
 }
@@ -100,25 +101,31 @@ ConnectNodeToRouter (Ptr<Node> routerNode, Ptr<Node> tmixNode, Ptr<
  * Out parameters: device, routerAddress
  */
 void
-ConnectRouter (Ptr<Node> router, Ptr<PointToPointChannel> channel,
-               Ptr<DelayBox> delayBox, Ptr<DelayBoxPointToPointNetDevice>& device,
-               Ipv4AddressHelper& addresses, Ipv4Address& routerAddress)
+TmixTopology::ConnectRouter (Ptr<Node> router, Ptr<PointToPointChannel> channel,
+                             Ptr<DelayBox> delayBox, Ptr<DelayBoxPointToPointNetDevice>& device,
+                             Ipv4AddressHelper& addresses, Ipv4Address& routerAddress)
 {
   device = CreateObject<DelayBoxPointToPointNetDevice> ();
   device->SetAddress (Mac48Address::Allocate ());
   device->SetDelayBox (delayBox);
   device->Attach (channel);
   router->AddDevice (device);
+  if (m_aqmUsed)
+    {
+      TrafficControlHelper tchRed;
+      tchRed.SetRootQueueDisc ("ns3::RedQueueDisc");
+      tchRed.Install (device);
+    }
   routerAddress = addresses.Assign (NetDeviceContainer (device)).GetAddress (0);
 
   // Set additional topology delays, unrelated to DelayBox
   // This is to more precisely duplicate the behavior of ns-2 Tmix
   // TODO: make these not hard-coded
-  device->SetAttribute ("DataRate", DataRateValue (DataRate ("1000Mbps")));
+  device->SetAttribute ("DataRate", DataRateValue (m_routerDeviceOutRate));
   {
     Ptr<DropTailQueue> queue = CreateObject<DropTailQueue> ();
     queue->SetMode (Queue::QUEUE_MODE_PACKETS);
-    queue->SetAttribute ("MaxPackets", UintegerValue (200));
+    queue->SetAttribute ("MaxPackets", UintegerValue (m_routerOutQueueLimit));
     device->SetQueue (queue);
   }
 }
@@ -185,7 +192,7 @@ TmixTopology::NodeTypeByAddress (Ipv4Address address)
     }
 }
 
-TmixTopology::TmixTopology (const InternetStackHelper& internet)
+TmixTopology::TmixTopology (const InternetStackHelper& internet, Ptr<TmixToplogyParameters> topParam)
   : m_internet (internet)
 {
   m_centerChannel = CreateObject<PointToPointChannel> ();
@@ -193,7 +200,18 @@ TmixTopology::TmixTopology (const InternetStackHelper& internet)
   // Set additional topology delays, unrelated to DelayBox
   // This is to more precisely duplicate the behavior of ns-2 Tmix
   // TODO: make these not hard-coded
-  m_centerChannel->SetAttribute ("Delay", TimeValue (MicroSeconds (100)));
+
+  m_centerChannelDelay = topParam->GetCenterChannelDelay ();
+  m_nodeToRouterDelay = topParam->GetNodeToRouterDelay ();
+  m_tmixDeviceRate = topParam->GetTmixDeviceRate ();
+  m_tmixDeviceQueueLimit = topParam->GetTmixDeviceQueueLimit ();
+  m_routerDeviceInRate = topParam->GetRouterDeviceInRate ();
+  m_routerInQueueLimit = topParam->GetRouterInQueueLimit ();
+  m_routerDeviceOutRate = topParam->GetRouterDeviceOutRate ();
+  m_routerOutQueueLimit = topParam->GetRouterOutQueueLimit ();
+  m_aqmUsed = topParam->IsAqmUsed ();
+
+  m_centerChannel->SetAttribute ("Delay", TimeValue (m_centerChannelDelay));
 
   m_delayBox = CreateObject<DelayBox> ();
 

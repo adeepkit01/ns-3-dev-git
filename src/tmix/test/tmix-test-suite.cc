@@ -4,6 +4,7 @@
 #include "ns3/tmix-topology.h"
 #include "ns3/tmix-helper.h"
 #include "ns3/tmix-ns2-style-trace-helper.h"
+#include "ns3/tmix-topology-parameter.h"
 
 #include "ns3/global-route-manager.h"
 
@@ -32,7 +33,8 @@ private:
 TmixTopologyTest::TmixTopologyTest ()
   : TestCase ("Creates nodes and checks if they have been created")
 {
-  tmix = Create<TmixTopology> (internet);
+  Ptr<TmixToplogyParameters> ttp = Create<TmixToplogyParameters> ();
+  tmix = Create<TmixTopology> (internet,ttp);
 }
 
 TmixTopologyTest::~TmixTopologyTest ()

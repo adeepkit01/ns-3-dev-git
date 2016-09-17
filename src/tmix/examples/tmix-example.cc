@@ -100,7 +100,8 @@ main (int argc, char *argv[])
   char animFile[] = "tmix-animation.xml";
 
   InternetStackHelper internet;
-  Ptr<TmixTopology> tmix = Create<TmixTopology> (internet);
+  Ptr<TmixToplogyParameters> ttp = Create<TmixToplogyParameters> ();
+  Ptr<TmixTopology> tmix = Create<TmixTopology> (internet,ttp);
 
   AddCvecsToPairs (tmix, twosided, cvecPortion, numPairs,cvecsPerPair);
 

@@ -46,6 +46,7 @@
 #include "ns3/internet-stack-helper.h"
 #include "ns3/ipv4-address-helper.h"
 #include "ns3/internet-stack-helper.h"
+#include "ns3/tmix-topology-parameter.h"
 
 namespace ns3 {
 
@@ -140,7 +141,7 @@ public:
    *    parameter is the choice of routing (with
    *    InternetStackHelper::SetRoutingHelper).
    */
-  TmixTopology (const InternetStackHelper& internet);
+  TmixTopology (const InternetStackHelper& internet, Ptr<TmixToplogyParameters> topParam);
 
   /**
    * Look up the type of a node by its address.
@@ -212,6 +213,16 @@ public:
   }
 
 private:
+  void
+  ConnectNodeToRouter (Ptr<Node> routerNode, Ptr<Node> tmixNode, Ptr<
+                         PointToPointNetDevice>& tmixDevice,
+                       Ptr<PointToPointNetDevice>& routerDevice, Ipv4AddressHelper &addresses,
+                       Ipv4Address& address);
+
+  void
+  ConnectRouter (Ptr<Node> router, Ptr<PointToPointChannel> channel,
+                 Ptr<DelayBox> delayBox, Ptr<DelayBoxPointToPointNetDevice>& device,
+                 Ipv4AddressHelper& addresses, Ipv4Address& routerAddress);
   Ptr<Node> m_leftRouter, m_rightRouter;
   Ptr<PointToPointChannel> m_centerChannel;
 
@@ -236,6 +247,10 @@ private:
 
   std::map<Ipv4Address, NodeType> m_nodeTypeOfAddress;
 
+  Time m_nodeToRouterDelay, m_centerChannelDelay;
+  DataRate m_tmixDeviceRate, m_routerDeviceInRate, m_routerDeviceOutRate;
+  uint32_t m_tmixDeviceQueueLimit, m_routerInQueueLimit, m_routerOutQueueLimit;
+  bool m_aqmUsed;
 };
 
 }
